@@ -44,6 +44,8 @@ class NLU:
         self.find_parser = RecursiveDescentParser(self.find_grammar)
         self.other_parser = RecursiveDescentParser(self.other_grammar)
 
+        self.spacy_nlp = spacy.load('en_core_web_sm')
+
     def parse_text(self, text):
         other_label = get_top_label(text, self.other_parser)
         if other_label is not None:
