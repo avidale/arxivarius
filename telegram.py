@@ -9,6 +9,7 @@ from flask import Flask, request
 from experiments.requester import ArticleFinder
 from experiments.dialog import Response
 from experiments.nlu import NLU
+from experiments.grammar_tools import sample_tags
 
 finder = ArticleFinder()
 nlu_module = NLU()
@@ -52,7 +53,12 @@ def process_message(msg):
     response = finder.do(state, semantic_frame)
     if response is None:
         response = Response('I cannot answer, so there should be a GC answer')
-    bot.reply_to(msg, text=response.text, reply_markup=render_markup(response.buttons))
+
+    buttons = response.buttons
+    for i in range(2):
+        buttons.append(' '.join([p[0] for p in sample_tags(nlu_module.find_grammar)]))
+
+    bot.reply_to(msg, text=response.text, reply_markup=render_markup(buttons))
 
 
 @server.route('/' + TELEBOT_URL + TOKEN, methods=['POST'])
