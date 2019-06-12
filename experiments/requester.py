@@ -2,6 +2,8 @@ import feedparser
 import re
 import requests
 
+from experiments.nlu import normalize_text, tokenize_text
+
 from experiments.dialog import Response
 
 ARXIV_API_URL = 'http://export.arxiv.org/api/query'
@@ -27,14 +29,6 @@ def get_id_from_url(url):
     raise ValueError('url {} cannot be parsed'.format(url))
 
 
-def normalize_text(text):
-    return text
-
-
-def tokenize_text(text):
-    return text.split()
-
-
 def popularity_first(article):
     return -article.get('citation_count', 0), article.get('relevance_position')
 
@@ -51,6 +45,7 @@ class ArticleFinder:
         if normalized in self.ontology:
             return [self.ontology[normalized]]
         words = tokenize_text(normalized)
+        # todo: do the match
         matches = []
         return matches
 
@@ -180,13 +175,15 @@ class ArticleFinder:
         a = current_form['found_articles'][idx]
         current_form['article'] = a
         return Response(
-            text='{} ({})\n{}\n{}'.format(a['author'], a['published'][0:10], a['title'], a['link']),
+            text='{} ({})\n{}'.format(a['author'], a['published'][0:10], a['title']),
             buttons=['show summary']
         )
 
     def do_details(self, current_form, query):
         a = current_form['article']
         return Response(
-            text='{} ({})\n{}\n{}\n{}'.format(a['author'], a['published'][0:10], a['title'], a['summary'], a['link']),
+            text='{} ({})\n{}\n{}\n{}'.format(
+                a['author'], a['published'][0:10], a['title'], a['summary'].replace('\n', ' '), a['link']
+            ),
             buttons=['show summary']
         )
