@@ -1,0 +1,47 @@
+S -> FIND
+FIND -> BARE_S | COMMON_PREFIX BARE_S | BARE_S COMMON_SUFFIX
+BARE_S -> DO_FIND PAPER_GROUP | PAPER_GROUP
+
+PAPER_GROUP -> ARTICLE PAPER_WITH_ATTR | PAPER_WITH_ATTR
+
+PAPER_WITH_ATTR -> PAPER_DESC | PAPER_ATTR PAPER_DESC | PAPER_ATTR PAPER_ATTR PAPER_DESC
+PAPER_WITH_ATTR -> PAPER_DESC PAPER_SUFFIX
+
+PAPER_SUFFIX -> WHICH TO_BE PAPER_ATTR
+
+PAPER_DESC -> PAPER
+PAPER_DESC -> PAPER BY_AUTHOR
+PAPER_DESC -> PAPER ON_TOPIC
+PAPER_DESC -> AUTHOR PAPER
+PAPER_DESC -> AUTHOR PAPER ON_TOPIC
+
+DO_FIND -> FIND_VERB
+DO_FIND -> FIND_VERB 'me'
+FIND_VERB -> 'find' | 'show' | 'give'
+
+PAPER -> PAPER_WORD
+PAPER_WORD -> 'paper' | 'papers' | 'work' | 'works' | 'article' | 'articles'
+
+ON_TOPIC -> ON TOPIC
+ON -> 'on' | 'about' | 'describing'
+TOPIC -> 'math' | 'nlp' | 'physics' | 'reinforcement' 'learning' | 'deep' 'learning' | 'semantic' 'parsing'
+
+BY_AUTHOR -> BY AUTHOR
+BY_AUTHOR -> BY ARTICLE AUTHOR
+BY -> 'by' | 'written by'
+AUTHOR -> ORG
+AUTHOR -> 'andrew' 'ng'
+ORG -> 'openai' | 'google'
+
+PAPER_ATTR -> 'most' PAPER_ATTRS | PAPER_ATTRS
+PAPER_ATTRS -> FRESH | TOP | OLD
+FRESH -> 'fresh' | 'new' | 'recent' | 'modern' | 'novel' | 'late' | 'latest' | 'contemporary'
+OLD -> 'classic' | 'early' | 'old' | 'earliest' | 'oldest'
+TOP -> 'top' | 'popular' | 'best'
+
+ARTICLE -> 'a' | 'an' | 'the' | 'some'
+COMMON_PREFIX -> 'please' | 'can' 'you'
+COMMON_SUFFIX -> 'please'
+
+WHICH -> 'that' | 'which'
+TO_BE -> 'is' | 'are' | 'is' | 'was'
