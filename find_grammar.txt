@@ -21,9 +21,9 @@ PAPER_DESC -> NAME
 
 DO_FIND -> FIND_VERB
 DO_FIND -> FIND_VERB 'me'
-FIND_VERB -> 'find' | 'show' | 'give'
+FIND_VERB -> 'find' | 'show' | 'give' | 'get' | 'obtain' | 'pick'
 
-CALLED -> 'called' | 'with' 'name' | 'with' 'title'
+CALLED -> 'called' | 'with' 'name' | 'with' 'title' | 'by' 'name' | 'by' | 'title'
 
 PAPER -> PAPER_WORD
 PAPER_WORD -> 'paper' | 'papers' | 'work' | 'works' | 'article' | 'articles' | 'item' | 'items' | 'piece' | 'pieces'

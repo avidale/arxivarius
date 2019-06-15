@@ -53,20 +53,26 @@ class ArticleFinder:
         print(semantic_frame)
         intent = semantic_frame['intent']
         if intent == 'find':
-            return self.do_find(state, semantic_frame)
+            resp = self.do_find(state, semantic_frame)
         elif intent == 'next' or intent == 'prev':
-            return self.do_prev_next(state, semantic_frame)
+            resp = self.do_prev_next(state, semantic_frame)
         elif intent == 'choose':
-            return self.do_choose(state, semantic_frame)
+            resp = self.do_choose(state, semantic_frame)
         elif intent == 'details':
-            return self.do_details(state, semantic_frame)
-        return None
+            resp = self.do_details(state, semantic_frame)
+        else:
+            return None
+        state['last_frame'] = semantic_frame
+        return resp
+        # todo: find_similar
+        #     * find_this_author
+        #     * get_authors
 
     def do_find(self, current_form, query):
         params = {
             # 'search_query': requester.UNIVERSAL_SEQRCH_QUERY,
             'start': 0,
-            'max_results': 10,
+            'max_results': 50,
             # 'sortBy': 'lastUpdatedDate',
             # 'sortOrder': 'descending',
             # 'id_list': '',
@@ -144,9 +150,13 @@ class ArticleFinder:
                 return Response('Sorry, I cannot show more articles.')
             current_form['current_page'] += 1
         else:
-            if current_form['current_page'] <= 0:
-                return Response('Sorry, this is already the beginning.')
-            current_form['current_page'] -= 1
+            if current_form.get('last_frame', {}).get('intent') in {'choose', 'details'}:
+                # 'back' means 'to the last viewed part of the list'
+                pass
+            else:
+                if current_form['current_page'] <= 0:
+                    return Response('Sorry, this is already the beginning.')
+                current_form['current_page'] -= 1
         return self.render_page(current_form, query)
 
     def render_page(self, current_form, query):
@@ -159,7 +169,7 @@ class ArticleFinder:
         if len(fa[first:last]) < 1:
             return Response('An error: no articles found on the current page')
 
-        names = ['{}: {}'.format(i, fa[i]['title']) for i in range(first, last)]
+        names = ['{}: {}'.format(i, fa[i]['title'].replace('\n', ' ')) for i in range(first, last)]
         # buttons = [n[:(self.max_button_len-3)]+'...' for n in names]  # todo: soft split
         buttons = [str(i) for i in range(first, last)]
         if p > 0:
@@ -175,7 +185,7 @@ class ArticleFinder:
         a = current_form['found_articles'][idx]
         current_form['article'] = a
         return Response(
-            text='{} ({})\n{}'.format(a['author'], a['published'][0:10], a['title']),
+            text='{} ({})\n{}'.format(a['author'], a['published'][0:10], a['title'].replace('\n', ' ')),
             buttons=['show summary']
         )
 
@@ -183,7 +193,11 @@ class ArticleFinder:
         a = current_form['article']
         return Response(
             text='{} ({})\n{}\n{}\n{}'.format(
-                a['author'], a['published'][0:10], a['title'], a['summary'].replace('\n', ' '), a['link']
+                a['author'],  # todo: maybe more authors
+                a['published'][0:10],
+                a['title'].replace('\n', ' '),
+                a['summary'].replace('\n', ' '),
+                a['link']
             ),
             buttons=['show summary']
         )

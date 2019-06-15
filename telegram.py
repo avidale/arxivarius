@@ -49,6 +49,7 @@ def wake_up():
 
 @bot.message_handler(func=lambda message: True, content_types=['document', 'text', 'photo'])
 def process_message(msg):
+    bot.send_chat_action(msg.chat.id, 'typing')
     semantic_frame = nlu_module.parse_text(msg.text)
     response = finder.do(state, semantic_frame)
     if response is None:

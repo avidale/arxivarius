@@ -9,7 +9,7 @@ import re
 import unicodedata
 
 from nltk import CFG
-from nltk.parse import RecursiveDescentParser
+from nltk.parse import BottomUpLeftCornerChartParser
 from tqdm.auto import tqdm, trange
 
 from experiments import grammar_tools
@@ -17,7 +17,7 @@ from experiments import grammar_tools
 global graph
 graph = tf.get_default_graph()
 
-SPACY_NLP = spacy.load('en_core_web_sm')
+SPACY_NLP = spacy.load('en_core_web_sm', disable=['ner', 'parser'])
 
 
 TAGGABLE_NODES = {
@@ -46,8 +46,8 @@ class NLU:
             self.other_grammar_text = f.read()
         self.other_grammar = CFG.fromstring(self.other_grammar_text)
 
-        self.find_parser = RecursiveDescentParser(self.find_grammar)
-        self.other_parser = RecursiveDescentParser(self.other_grammar)
+        self.find_parser = BottomUpLeftCornerChartParser(self.find_grammar)
+        self.other_parser = BottomUpLeftCornerChartParser(self.other_grammar)
 
         self.all_tags_file = all_tags_file
         with open(all_tags_file, 'r') as f:
@@ -76,7 +76,6 @@ class NLU:
         # todo: try ML classification
         tokens = tokenize_text(text)
         inp = np.stack([text2vecs(text)])
-        print(inp.shape)
         with graph.as_default():
             tags_scores = self.tagger.predict(inp)[0]
         tags_names = [self.all_tags[i] for i in tags_scores.argmax(axis=1)]

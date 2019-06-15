@@ -1,9 +1,17 @@
 S -> NEXT | PREV | CHOOSE | DETAILS | HELP
-NEXT -> 'next' PAGE
-PREV -> 'previous' PAGE
-PAGE -> 'page' | 'papers' | 'articles'
+
+NEXT -> NEXT_WORD | NEXT_WORD PAGE
+NEXT_WORD -> 'next' | 'more' | 'forward'
+
+PREV -> PREV_WORD | PREV_WORD PAGE
+PREV_WORD -> 'previous' | 'prev' | 'back' | 'backward'
+
+PAGE -> 'page' | 'papers' | 'articles' | 'pages'
+
 CHOOSE -> '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'first' | 'second' | 'third'
+
 DETAILS -> SHOW DETAILS_SYN | DETAILS_SYN
 DETAILS_SYN -> 'details' | 'summary' | 'abstract'
 SHOW -> 'show' | 'read' | 'display' | 'give'
+
 HELP -> 'what' 'can' 'you' 'do' | 'help'
