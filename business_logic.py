@@ -3,7 +3,6 @@ import re
 import requests
 
 from nlu import normalize_text, tokenize_text
-from conversation import SimpleConversation
 
 
 ARXIV_API_URL = 'http://export.arxiv.org/api/query'
@@ -40,12 +39,12 @@ def popularity_first(article):
 
 
 class ArticleFinder:
-    def __init__(self, citations=None, ontology=None, page_size=5, max_button_len=20):
+    def __init__(self, conversation_model, citations=None, ontology=None, page_size=5, max_button_len=20):
         self.ontology = ontology or {}
         self.citations = citations or {}
         self.page_size = page_size
         self.max_button_len = max_button_len
-        self.conversation_model = SimpleConversation()
+        self.conversation_model = conversation_model
 
     def extract_topics(self, text):
         normalized = normalize_text(text)
@@ -73,16 +72,13 @@ class ArticleFinder:
             resp = self.do_conversation(state, semantic_frame)
         state['last_frame'] = semantic_frame
         return resp
-        # todo: find_similar
-        #     * find_this_author
-        #     * get_authors
 
     def do_conversation(self, state, semantic_frame):
         return Response(self.conversation_model.reply(state['text']))
 
     def do_find(self, state, frame):
         params = {
-            # 'search_query': requester.UNIVERSAL_SEQRCH_QUERY,
+            # 'search_query': UNIVERSAL_SEQRCH_QUERY,
             'start': 0,
             'max_results': 50,
             # 'sortBy': 'lastUpdatedDate',
@@ -182,7 +178,6 @@ class ArticleFinder:
             return Response('An error: no articles found on the current page')
 
         names = ['{}: {}'.format(i, fa[i]['title'].replace('\n', ' ')) for i in range(first, last)]
-        # buttons = [n[:(self.max_button_len-3)]+'...' for n in names]  # todo: soft split
         buttons = [str(i) for i in range(first, last)]
         if p > 0:
             buttons.append('previous papers')
@@ -192,7 +187,10 @@ class ArticleFinder:
         return Response(text='\n'.join(names), buttons=buttons)
 
     def do_choose(self, state, frame):
-        idx = int(frame['index'])  # todo: convert words to numbers
+        try:
+            idx = int(frame['index'])  # todo: convert words to numbers
+        except ValueError:
+            return Response('Please enter a number to choose the paper.')
         state['current_article_index'] = idx
         a = state['found_articles'][idx]
         state['article'] = a

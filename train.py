@@ -11,10 +11,23 @@ from keras.models import Model
 from keras_tqdm import TQDMNotebookCallback
 from nltk import CFG
 from nltk.parse.generate import generate
-from tqdm.auto import tqdm
+from tqdm.auto import tqdm, trange
 
 import nlu
+import grammar_tools
 from conversation import SimpleConversation
+
+
+def generate_vector_samples(grammar, taggable, n=3000):
+    sentences = [
+        grammar_tools.sample_tags(grammar=grammar, taggable=taggable)
+        for i in trange(n)
+    ]
+    sentences.sort(key=lambda k: len(k))
+    texts = [' '.join([p[0] for p in raw_s]) for raw_s in sentences]
+    tagss = [[p[1] for p in raw_s] for raw_s in sentences]
+    vecss = [nlu.text2vecs(text) for text in tqdm(texts)]
+    return texts, tagss, vecss
 
 
 def build_tagger_model(emb_size=96, rnn_size=64, n_classes=11):
@@ -40,9 +53,9 @@ def build_clf_model(emb_size=96, n_classes=6):
 
 
 def train_tagger(nlu_module):
-    texts, tagss, vecss = nlu.generate_vector_samples(nlu_module.find_grammar, taggable=nlu.TAGGABLE_NODES, n=3000)
+    texts, tagss, vecss = generate_vector_samples(nlu_module.find_grammar, taggable=nlu.TAGGABLE_NODES, n=3000)
     # validation data
-    ttexts, ttagss, tvecss = nlu.generate_vector_samples(nlu_module.find_grammar, taggable=nlu.TAGGABLE_NODES, n=300)
+    ttexts, ttagss, tvecss = generate_vector_samples(nlu_module.find_grammar, taggable=nlu.TAGGABLE_NODES, n=300)
     all_tags = sorted(set(t for tags in tagss for t in tags))
     tag2id = {tag: i for i, tag in enumerate(all_tags)}
 
@@ -83,15 +96,15 @@ def train_classifier(nlu_module):
     INTENT_NAMES = sorted({str(p.rhs()[0]) for p in joint_grammar.productions() if str(p.lhs()) == 'S'})
     INTENT_NAMES = {c: c for c in INTENT_NAMES}
 
-    fnd_text, fnd_tag, fnd_vec = nlu.generate_vector_samples(nlu_module.find_grammar, taggable=INTENT_NAMES, n=3000)
-    oth_text, oth_tag, oth_vec = nlu.generate_vector_samples(nlu_module.other_grammar, taggable=INTENT_NAMES, n=3000)
+    fnd_text, fnd_tag, fnd_vec = generate_vector_samples(nlu_module.find_grammar, taggable=INTENT_NAMES, n=3000)
+    oth_text, oth_tag, oth_vec = generate_vector_samples(nlu_module.other_grammar, taggable=INTENT_NAMES, n=3000)
 
     with open('data/persona_positives.json', 'r') as f:
         raw_persona = json.load(f)
     persona_sents = [sent for s in raw_persona['train'] for sent in s['dialog'] if sent != '__ SILENCE __']
     prs_text = random.sample(persona_sents, 3000)
     # add some more handcrafted samples
-    with open('gc_grammar.txt', 'r') as f:
+    with open('grammars/gc_grammar.txt', 'r') as f:
         gc_grammar = CFG.fromstring(f.read())
     for sent in generate(gc_grammar):
         prs_text.append(' '.join(sent))
@@ -156,6 +169,8 @@ parser.add_argument('--tag', action='store_true')
 if __name__ == '__main__':
     args = parser.parse_args()
     nlu_module = nlu.NLU()
+    if not args.gc and not args.clf and not args.tag:
+        print('There is nothing to train! Please provide the command line options.')
     if args.gc:
         print('training conversation model')
         train_gc()

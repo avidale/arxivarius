@@ -3,6 +3,7 @@
 import argparse
 import os
 import pymongo
+import mongomock
 import telebot
 
 from flask import Flask, request
@@ -10,8 +11,9 @@ from flask import Flask, request
 from business_logic import ArticleFinder
 from nlu import NLU
 from grammar_tools import sample_tags
+from conversation import SimpleConversation
 
-finder = ArticleFinder()
+finder = ArticleFinder(conversation_model=SimpleConversation())
 nlu_module = NLU()
 
 TOKEN = os.environ['TOKEN']
@@ -22,8 +24,13 @@ TELEBOT_URL = 'telebot_webhook/'
 BASE_URL = 'https://arxivarius.herokuapp.com/'
 
 MONGO_URL = os.environ.get('MONGODB_URI')
-mongo_client = pymongo.MongoClient(MONGO_URL)
-mongo_db = mongo_client.get_default_database()
+if MONGO_URL:
+    mongo_client = pymongo.MongoClient(MONGO_URL)
+    mongo_db = mongo_client.get_default_database()
+else:
+    # preserve state in RAM only - for debugging purposes
+    mongo_client = mongomock.MongoClient()
+    mongo_db = mongo_client.db
 mongo_states = mongo_db.get_collection('states')
 
 
@@ -62,7 +69,7 @@ def process_message(msg):
     semantic_frame = nlu_module.parse_text(msg.text)
     response = finder.do(state, semantic_frame)
     buttons = response.buttons
-    for i in range(2):
+    for i in range(3):
         buttons.append(' '.join([p[0] for p in sample_tags(nlu_module.find_grammar)]))
 
     bot.reply_to(msg, text=response.text, reply_markup=render_markup(buttons))

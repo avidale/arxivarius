@@ -11,12 +11,10 @@ import unicodedata
 
 from nltk import CFG
 from nltk.parse import BottomUpLeftCornerChartParser
-from tqdm.auto import tqdm, trange
 
 import grammar_tools
 
-global graph
-graph = tf.get_default_graph()
+graph = tf.get_default_graph()  # we have to use a global var because Flask works in a multi-thread mode
 
 SPACY_NLP = spacy.load('en_core_web_sm', disable=['ner', 'parser'])
 
@@ -36,8 +34,8 @@ TAGGABLE_NODES = {
 class NLU:
     def __init__(
             self,
-            find_grammar_file='find_grammar.txt',
-            other_grammar_file='other_grammar.txt',
+            find_grammar_file='grammars/find_grammar.txt',
+            other_grammar_file='grammars/other_grammar.txt',
             classifier_file='models/classifier.h5',
             tagger_file='models/tagger.h5',
             all_intents_file='models/all_intents.json',
@@ -115,18 +113,6 @@ class NLU:
 
 def text2vecs(text):
     return np.array([t.vector for t in SPACY_NLP(normalize_text(text))])
-
-
-def generate_vector_samples(grammar, taggable, n=3000):
-    sentences = [
-        grammar_tools.sample_tags(grammar=grammar, taggable=taggable)
-        for i in trange(n)
-    ]
-    sentences.sort(key=lambda k: len(k))
-    texts = [' '.join([p[0] for p in raw_s]) for raw_s in sentences]
-    tagss = [[p[1] for p in raw_s] for raw_s in sentences]
-    vecss = [text2vecs(text) for text in tqdm(texts)]
-    return texts, tagss, vecss
 
 
 def normalize_text(text):
