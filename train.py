@@ -1,5 +1,5 @@
+import argparse
 import json
-import nlu
 import numpy as np
 import keras
 import random
@@ -11,6 +11,9 @@ from keras.models import Model
 from nltk import CFG
 from tqdm.auto import tqdm
 from keras_tqdm import TQDMNotebookCallback
+
+import nlu
+from conversation import SimpleConversation
 
 
 def build_tagger_model(emb_size=96, rnn_size=64, n_classes=11):
@@ -126,7 +129,34 @@ def train_classifier(nlu_module):
         json.dump(all_intents, f)
 
 
+def train_gc():
+    with open('data/persona_positives.json', 'r') as f:
+        raw_persona = json.load(f)
+    persona_pairs = [
+        (s['dialog'][i], sent)
+        for s in raw_persona['train']
+        for i, sent in enumerate(s['dialog'][1:])
+        if sent != '__ SILENCE __' and s['dialog'][i] != '__ SILENCE __'
+    ]
+    random_pairs = random.sample(persona_pairs, k=10000)
+    model = SimpleConversation()
+    model.train(random_pairs)
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--gc', action='store_true')
+parser.add_argument('--clf', action='store_true')
+parser.add_argument('--tag', action='store_true')
 if __name__ == '__main__':
+    args = parser.parse_args()
     nlu_module = nlu.NLU()
-    train_tagger(nlu_module)
-    train_classifier(nlu_module)
+    if args.gc:
+        print('training conversation model')
+        train_gc()
+    if args.clf:
+        print('training classifier')
+        train_classifier(nlu_module)
+    if args.tag:
+        print('training tagger')
+        train_tagger(nlu_module)
+    print('all done!')

@@ -3,6 +3,7 @@ import re
 import requests
 
 from nlu import normalize_text, tokenize_text
+from conversation import SimpleConversation
 
 from dialog import Response
 
@@ -39,6 +40,7 @@ class ArticleFinder:
         self.citations = citations or {}
         self.page_size = page_size
         self.max_button_len = max_button_len
+        self.conversation_model = SimpleConversation()
 
     def extract_topics(self, text):
         normalized = normalize_text(text)
@@ -61,12 +63,15 @@ class ArticleFinder:
         elif intent == 'details':
             resp = self.do_details(state, semantic_frame)
         else:
-            return None
+            resp = self.do_conversation(state, semantic_frame)
         state['last_frame'] = semantic_frame
         return resp
         # todo: find_similar
         #     * find_this_author
         #     * get_authors
+
+    def do_conversation(self, state, semantic_frame):
+        return Response(self.conversation_model.reply(state['text']))
 
     def do_find(self, current_form, query):
         params = {

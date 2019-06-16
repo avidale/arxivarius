@@ -60,6 +60,7 @@ def process_message(msg):
         state = {}
     else:
         state = state_obj.get('state', {})
+    state['text'] = msg.text
     semantic_frame = nlu_module.parse_text(msg.text)
     response = finder.do(state, semantic_frame)
     if response is None:

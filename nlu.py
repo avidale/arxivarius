@@ -77,6 +77,7 @@ class NLU:
             self.classifier = None
 
     def parse_text(self, original_text):
+        print(original_text)
         text = normalize_text(original_text)
         # grammar-based parsing
         other_label = grammar_tools.get_top_label(text, self.other_parser)
