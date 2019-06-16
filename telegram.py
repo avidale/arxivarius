@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import argparse
 import os
+import pymongo
 import telebot
 
 from flask import Flask, request
@@ -14,8 +15,6 @@ from grammar_tools import sample_tags
 finder = ArticleFinder()
 nlu_module = NLU()
 
-state = {}
-
 TOKEN = os.environ['TOKEN']
 bot = telebot.TeleBot(TOKEN)
 
@@ -24,6 +23,10 @@ TELEBOT_URL = 'telebot_webhook/'
 BASE_URL = 'https://arxivarius.herokuapp.com/'
 
 MONGO_URL = os.environ.get('MONGODB_URI')
+print(MONGO_URL)
+mongo_client = pymongo.MongoClient(MONGO_URL)
+mongo_db = mongo_client.get_default_database()
+mongo_states = mongo_db.get_collection('states')
 
 
 def render_markup(suggests=None, max_columns=3, initial_ratio=2):
@@ -50,6 +53,13 @@ def wake_up():
 @bot.message_handler(func=lambda message: True, content_types=['document', 'text', 'photo'])
 def process_message(msg):
     bot.send_chat_action(msg.chat.id, 'typing')
+    chat_id = msg.chat.id
+    username = msg.from_user.username
+    state_obj = mongo_states.find_one({'key': chat_id})
+    if state_obj is None:
+        state = {}
+    else:
+        state = state_obj.get('state', {})
     semantic_frame = nlu_module.parse_text(msg.text)
     response = finder.do(state, semantic_frame)
     if response is None:
@@ -60,6 +70,11 @@ def process_message(msg):
         buttons.append(' '.join([p[0] for p in sample_tags(nlu_module.find_grammar)]))
 
     bot.reply_to(msg, text=response.text, reply_markup=render_markup(buttons))
+    mongo_states.update_one(
+        {'key': chat_id},
+        {'$set': {'key': chat_id, 'state': state, 'username': username}},
+        upsert=True
+    )
 
 
 @server.route('/' + TELEBOT_URL + TOKEN, methods=['POST'])

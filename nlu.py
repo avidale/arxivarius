@@ -1,6 +1,5 @@
 import spacy
 import numpy as np
-import pandas as pd
 import json
 import keras
 
@@ -100,7 +99,7 @@ class NLU:
         with graph.as_default():
             intent_proba = self.classifier.predict(inp)[0]
         print(list(zip(self.all_intents, intent_proba)))
-        intent = self.all_intents[intent_proba.argmax()]
+        intent = self.all_intents[intent_proba.argmax()].lower()
         frame = {'intent': intent}
         if intent != 'find':
             return frame
