@@ -6,10 +6,10 @@ import telebot
 
 from flask import Flask, request
 
-from experiments.requester import ArticleFinder
-from experiments.dialog import Response
-from experiments.nlu import NLU
-from experiments.grammar_tools import sample_tags
+from requester import ArticleFinder
+from dialog import Response
+from nlu import NLU
+from grammar_tools import sample_tags
 
 finder = ArticleFinder()
 nlu_module = NLU()
