@@ -38,10 +38,10 @@ class NLU:
             self,
             find_grammar_file='find_grammar.txt',
             other_grammar_file='other_grammar.txt',
-            classifier_file='classifier.h5',
-            tagger_file='tagger.h5',
-            all_intents_file='all_intents.json',
-            all_tags_file='all_tags.json',
+            classifier_file='models/classifier.h5',
+            tagger_file='models/tagger.h5',
+            all_intents_file='models/all_intents.json',
+            all_tags_file='models/all_tags.json',
     ):
         with open(find_grammar_file, 'r') as f:
             self.find_grammar_text = f.read()

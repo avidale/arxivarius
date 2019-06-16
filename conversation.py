@@ -14,7 +14,7 @@ def get_vec(text):
 
 
 class SimpleConversation:
-    def __init__(self, filename='gc_knn.pkl', k=5):
+    def __init__(self, filename='models/gc_knn.pkl', k=5):
         self.filename = filename
         self.k = k
         if filename is not None and os.path.exists(filename):

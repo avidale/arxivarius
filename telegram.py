@@ -23,7 +23,6 @@ TELEBOT_URL = 'telebot_webhook/'
 BASE_URL = 'https://arxivarius.herokuapp.com/'
 
 MONGO_URL = os.environ.get('MONGODB_URI')
-print(MONGO_URL)
 mongo_client = pymongo.MongoClient(MONGO_URL)
 mongo_db = mongo_client.get_default_database()
 mongo_states = mongo_db.get_collection('states')

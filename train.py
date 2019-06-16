@@ -8,9 +8,10 @@ from keras.layers import GRU, Dense, Input, TimeDistributed, Softmax, Add
 from keras.layers import Conv1D, GlobalMaxPooling1D, Dropout
 from keras.layers.wrappers import Bidirectional
 from keras.models import Model
-from nltk import CFG
-from tqdm.auto import tqdm
 from keras_tqdm import TQDMNotebookCallback
+from nltk import CFG
+from nltk.parse.generate import generate
+from tqdm.auto import tqdm
 
 import nlu
 from conversation import SimpleConversation
@@ -72,8 +73,8 @@ def train_tagger(nlu_module):
         validation_steps=len(tvecss)
     )
 
-    model.save('tagger.h5')
-    with open('all_tags.json', 'w') as f:
+    model.save('models/tagger.h5')
+    with open('models/all_tags.json', 'w') as f:
         json.dump(all_tags, f)
 
 
@@ -89,9 +90,14 @@ def train_classifier(nlu_module):
         raw_persona = json.load(f)
     persona_sents = [sent for s in raw_persona['train'] for sent in s['dialog'] if sent != '__ SILENCE __']
     prs_text = random.sample(persona_sents, 3000)
+    # add some more handcrafted samples
+    with open('gc_grammar.txt', 'r') as f:
+        gc_grammar = CFG.fromstring(f.read())
+    for sent in generate(gc_grammar):
+        prs_text.append(' '.join(sent))
+
     prs_tag = [['B-GC'] for _ in prs_text]
     prs_vec = [nlu.text2vecs(text) for text in tqdm(prs_text)]
-
     all_text = fnd_text + prs_text + oth_text
     all_labl = [c[0][2:] for c in fnd_tag + prs_tag + oth_tag]
     all_vec = fnd_vec + prs_vec + oth_vec
@@ -106,7 +112,7 @@ def train_classifier(nlu_module):
     clf = build_clf_model(n_classes=len(all_intents))
     clf.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['categorical_accuracy'])
 
-    train_indices = np.random.permutation(len(targets))[:8000]
+    train_indices = np.random.permutation(len(targets))[:int(len(targets)*0.9)]
     val_indices = list(set(np.arange(len(targets))).difference(set(train_indices)))
 
     def sample_clf(basis=None):
@@ -121,11 +127,11 @@ def train_classifier(nlu_module):
     clf.fit_generator(
         sample_clf(train_indices), steps_per_epoch=len(train_indices),
         validation_data=sample_clf(val_indices), validation_steps=len(val_indices),
-        epochs=10, verbose=2, callbacks=[TQDMNotebookCallback()]
+        epochs=3, verbose=2, callbacks=[TQDMNotebookCallback()]
     )
 
-    clf.save('classifier.h5')
-    with open('all_intents.json', 'w') as f:
+    clf.save('models/classifier.h5')
+    with open('models/all_intents.json', 'w') as f:
         json.dump(all_intents, f)
 
 
