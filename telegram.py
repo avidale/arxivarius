@@ -7,8 +7,7 @@ import telebot
 
 from flask import Flask, request
 
-from requester import ArticleFinder
-from dialog import Response
+from business_logic import ArticleFinder
 from nlu import NLU
 from grammar_tools import sample_tags
 
@@ -62,9 +61,6 @@ def process_message(msg):
     state['text'] = msg.text
     semantic_frame = nlu_module.parse_text(msg.text)
     response = finder.do(state, semantic_frame)
-    if response is None:
-        response = Response('I cannot answer, so there should be a GC answer')
-
     buttons = response.buttons
     for i in range(2):
         buttons.append(' '.join([p[0] for p in sample_tags(nlu_module.find_grammar)]))

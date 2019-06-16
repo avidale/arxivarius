@@ -5,13 +5,18 @@ import requests
 from nlu import normalize_text, tokenize_text
 from conversation import SimpleConversation
 
-from dialog import Response
 
 ARXIV_API_URL = 'http://export.arxiv.org/api/query'
 UNIVERSAL_SEQRCH_QUERY = 'all:the'
 
 ARXIV_ID_PATTERN = re.compile('https?://arxiv.org/abs/(\d+\.\d+)v\d+')
 ARXIV_ID_PATTERN2 = re.compile('https?://arxiv.org/abs/(.*)?$')
+
+
+class Response:
+    def __init__(self, text, buttons=None):
+        self.text = text
+        self.buttons = buttons or []
 
 
 def get_articles(params):
@@ -62,6 +67,8 @@ class ArticleFinder:
             resp = self.do_choose(state, semantic_frame)
         elif intent == 'details':
             resp = self.do_details(state, semantic_frame)
+        elif intent == 'help':
+            resp = self.do_help(state, semantic_frame)
         else:
             resp = self.do_conversation(state, semantic_frame)
         state['last_frame'] = semantic_frame
@@ -73,7 +80,7 @@ class ArticleFinder:
     def do_conversation(self, state, semantic_frame):
         return Response(self.conversation_model.reply(state['text']))
 
-    def do_find(self, current_form, query):
+    def do_find(self, state, frame):
         params = {
             # 'search_query': requester.UNIVERSAL_SEQRCH_QUERY,
             'start': 0,
@@ -84,14 +91,14 @@ class ArticleFinder:
         }
         query_parts = []
 
-        topic_text = query.get('TOPIC')
-        article_name = query.get('NAME')
-        author_text = query.get('AUTHOR')
-        journal_text = query.get('JOURNAL')
-        org_text = query.get('ORG')
-        is_top = query.get('TOP')
-        is_fresh = query.get('FRESH')
-        is_old = query.get('OLD')
+        topic_text = frame.get('TOPIC')
+        article_name = frame.get('NAME')
+        author_text = frame.get('AUTHOR')
+        journal_text = frame.get('JOURNAL')
+        org_text = frame.get('ORG')
+        is_top = frame.get('TOP')
+        is_fresh = frame.get('FRESH')
+        is_old = frame.get('OLD')
 
         if topic_text is not None:
             topics = self.extract_topics(topic_text)
@@ -141,34 +148,34 @@ class ArticleFinder:
                 article['relevance_position'] = i
             articles.sort(key=popularity_first)
 
-        current_form['last_search'] = params
-        current_form['found_articles'] = articles
-        current_form['current_page'] = 0
+        state['last_search'] = params
+        state['found_articles'] = articles
+        state['current_page'] = 0
 
-        return self.render_page(current_form, query)
+        return self.render_page(state, frame)
 
-    def do_prev_next(self, current_form, query):
-        if 'current_page' not in current_form:
+    def do_prev_next(self, state, frame):
+        if 'current_page' not in state:
             return Response('Sorry, I cannot show the search results.')
-        if query['intent'] == 'next':
-            if (current_form['current_page'] + 1) * self.page_size >= len(current_form.get('found_articles', [])):
+        if frame['intent'] == 'next':
+            if (state['current_page'] + 1) * self.page_size >= len(state.get('found_articles', [])):
                 return Response('Sorry, I cannot show more articles.')
-            current_form['current_page'] += 1
+            state['current_page'] += 1
         else:
-            if current_form.get('last_frame', {}).get('intent') in {'choose', 'details'}:
+            if state.get('last_frame', {}).get('intent') in {'choose', 'details'}:
                 # 'back' means 'to the last viewed part of the list'
                 pass
             else:
-                if current_form['current_page'] <= 0:
+                if state['current_page'] <= 0:
                     return Response('Sorry, this is already the beginning.')
-                current_form['current_page'] -= 1
-        return self.render_page(current_form, query)
+                state['current_page'] -= 1
+        return self.render_page(state, frame)
 
-    def render_page(self, current_form, query):
-        fa = current_form.get('found_articles', [])
+    def render_page(self, state, frame):
+        fa = state.get('found_articles', [])
         if len(fa) == 0:
             return Response('Sorry, no articles were found')
-        p = current_form.get('current_page', 0)
+        p = state.get('current_page', 0)
         first = p * self.page_size
         last = min(len(fa), (p + 1) * self.page_size)
         if len(fa[first:last]) < 1:
@@ -184,18 +191,18 @@ class ArticleFinder:
 
         return Response(text='\n'.join(names), buttons=buttons)
 
-    def do_choose(self, current_form, query):
-        idx = int(query['index'])  # todo: convert words to numbers
-        current_form['current_article_index'] = idx
-        a = current_form['found_articles'][idx]
-        current_form['article'] = a
+    def do_choose(self, state, frame):
+        idx = int(frame['index'])  # todo: convert words to numbers
+        state['current_article_index'] = idx
+        a = state['found_articles'][idx]
+        state['article'] = a
         return Response(
             text='{} ({})\n{}'.format(a['author'], a['published'][0:10], a['title'].replace('\n', ' ')),
             buttons=['show summary']
         )
 
-    def do_details(self, current_form, query):
-        a = current_form['article']
+    def do_details(self, state, frame):
+        a = state['article']
         return Response(
             text='{} ({})\n{}\n{}\n{}'.format(
                 a['author'],  # todo: maybe more authors
@@ -206,3 +213,8 @@ class ArticleFinder:
             ),
             buttons=['show summary']
         )
+
+    def do_help(self, state, frame):
+        examples = ['find me popular papers by Mikolov', "get some fresh papers on neurobiology"]
+        return Response('I am a bot that can search for articles on arXiv.org or just chat with you. '
+                        'For example, you can ask "{}" or "{}".'.format(*examples), buttons=examples)

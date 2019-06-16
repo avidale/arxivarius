@@ -1,4 +1,2 @@
 S -> GC
-GC -> 'hello' | 'hi' | 'hi' 'there'
-GC -> 'wow' | 'yes' | 'no'
-GC -> 'fuck' 'you'
+GC -> 'hello' | 'hi' | 'hi' 'there' | 'wow' | 'yes' | 'no' | 'fuck' 'you' | 'how' 'are' 'you'
