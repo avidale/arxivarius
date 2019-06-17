@@ -100,6 +100,8 @@ class NLU:
         print(list(zip(self.all_intents, intent_proba)))
         intent = self.all_intents[intent_proba.argmax()].lower()
         frame = {'intent': intent}
+        if intent == 'choose':
+            frame['index'] = text
         if intent != 'find':
             return frame
         with graph.as_default():
