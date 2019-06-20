@@ -1,6 +1,8 @@
 This repo contains an example of a simple virtual assistant, written in Python 3. 
 This assistant has two functions: search papers on arXiv.org or just chit-chat.
 
+You are invited to extend and improve it. 
+
 ### What is it
 In the current state, the assistant can be deployed on Heroku.com and run as a bot in Telegram.
 
@@ -22,7 +24,8 @@ python telegram.py --poll
 Alternatively, you can register a free app and deploy the bot on [Heroku](http://heroku.com).
 
 ### What is inside
-Grammars, mostly. Because I had no relevant search requests (much less labelled ones) to train on, I had to generate
+Grammars, mostly. Because I had no relevant search requests (much less labelled ones) to train 
+on<sup>[*](#footnote1)</sup>, I had to generate
 them by myself. And that's when CFGs come really useful: they allow to generate texts, intents and tags 
 at the same time, using hierarchies of patterns.
 
@@ -53,6 +56,15 @@ and its reply is just one of the training replies, with the most similar context
 As a result, many of the replies are inadequate.
 
 You can deal with it by (in order of increasing difficulty):
-    * filtering the training responses in some smart way (to get rid of the too specific ones);
-    * train a DSSM-like model that matches context with response;
-    * train a seq2seq model to generate responses from scratch.
+* filtering the training responses in some smart way (to get rid of the too specific ones);
+* train a DSSM-like model that matches context with response;
+    * if the context is a single sentence, it can be encoded with Google's Universal Sentence Encoder 
+(+one dense layer to transform the context into something near the response embeding, 
+like in https://arxiv.org/abs/1906.01543 or in the attached notebook)
+* train a seq2seq model to generate responses from scratch
+    * you can fine-tune GPT for this task, like in https://medium.com/huggingface/2d818ac26313
+
+<a id="footnote1">*</a> There is a part about scientific publications in the Overnight dataset 
+(https://worksheets.codalab.org/worksheets/0x269ef752f8c344a28383240f7bb2be9c), but I had learned it later. 
+And anyway, creators of the dataset generated the queries with grammars (just like me), and the asked crowdsourcers
+to reformulate them.
