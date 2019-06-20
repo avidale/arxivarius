@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import argparse
+import json
 import os
 import pymongo
 import mongomock
@@ -13,7 +14,12 @@ from nlu import NLU
 from grammar_tools import sample_tags
 from conversation import SimpleConversation
 
-finder = ArticleFinder(conversation_model=SimpleConversation())
+with open('models/citations.json', 'r') as f:
+    citations = json.load(f)
+with open('models/area_to_code.json', 'r') as f:
+    ontology = json.load(f)
+
+finder = ArticleFinder(conversation_model=SimpleConversation(), citations=citations, ontology=ontology)
 nlu_module = NLU()
 
 TOKEN = os.environ['TOKEN']

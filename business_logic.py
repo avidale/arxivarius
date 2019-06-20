@@ -40,7 +40,7 @@ def popularity_first(article):
 
 class ArticleFinder:
     def __init__(self, conversation_model, citations=None, ontology=None, page_size=5, max_button_len=20):
-        self.ontology = ontology or {}
+        self.ontology = {normalize_text(k): v for k, v in (ontology or {}).items()}
         self.citations = citations or {}
         self.page_size = page_size
         self.max_button_len = max_button_len
@@ -50,10 +50,8 @@ class ArticleFinder:
         normalized = normalize_text(text)
         if normalized in self.ontology:
             return [self.ontology[normalized]]
-        words = tokenize_text(normalized)
-        # todo: do the match
-        matches = []
-        return matches
+        # todo: implement a fuzzier matcher - e.g. with textdistance or even synonyms
+        return []
 
     def do(self, state, semantic_frame):
         print(semantic_frame)
@@ -203,7 +201,7 @@ class ArticleFinder:
         a = state['article']
         return Response(
             text='{} ({})\n{}\n{}\n{}'.format(
-                a['author'],  # todo: maybe more authors
+                a['author'],  # todo: maybe render more authors
                 a['published'][0:10],
                 a['title'].replace('\n', ' '),
                 a['summary'].replace('\n', ' '),
