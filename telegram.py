@@ -52,16 +52,15 @@ def render_markup(suggests=None, max_columns=3, initial_ratio=2):
 
 
 class LoggedMessage:
-    def __init__(self, text, user_id, from_user, collection, **kwargs):
+    def __init__(self, text, user_id, from_user, **kwargs):
         self.text = text
         self.user_id = user_id
         self.from_user = from_user
         self.timestamp = str(datetime.utcnow())
         self.kwargs = kwargs
-        self.mongo_collection = collection
 
-    def save(self):
-        self.mongo_collection.insert_one(self.to_dict())
+    def save_to_mongo(self, collection):
+        collection.insert_one(self.to_dict())
 
     def to_dict(self):
         result = {
@@ -74,6 +73,20 @@ class LoggedMessage:
             if k not in result:
                 result[k] = v
         return result
+
+    @classmethod
+    def from_telegram(cls, message):
+        reply_to_id = None
+        if message.reply_to_message is not None:
+            reply_to_id = message.reply_to_message.message_id
+        return cls(
+            text=message.text,
+            user_id=message.chat.id,
+            message_id=message.message_id,
+            from_user=not message.from_user.is_bot,
+            username=message.chat.username,
+            reply_to_id=reply_to_id,
+        )
 
 
 @server.route("/" + TELEBOT_URL)
@@ -92,13 +105,7 @@ def wake_up():
 @bot.message_handler(func=lambda message: True, content_types=['document', 'text', 'photo'])
 def process_message(msg):
     bot.send_chat_action(msg.chat.id, 'typing')
-    LoggedMessage(
-        text=msg.text,
-        user_id=msg.from_user.id,
-        from_user=True,
-        message_id=msg.message_id,
-        collection=mongo_message_logs,
-    ).save()
+    LoggedMessage.from_telegram(msg).save_to_mongo(mongo_message_logs)
     chat_id = msg.chat.id
     username = msg.from_user.username
     state_obj = mongo_states.find_one({'key': chat_id})
@@ -119,13 +126,7 @@ def process_message(msg):
         {'$set': {'key': chat_id, 'state': state, 'username': username}},
         upsert=True
     )
-    LoggedMessage(
-        text=response.text,
-        user_id=msg.from_user.id,
-        from_user=False,
-        message_id=final_reply.message_id,
-        collection=mongo_message_logs,
-    ).save()
+    LoggedMessage.from_telegram(final_reply).save_to_mongo(mongo_message_logs)
 
 
 @server.route('/' + TELEBOT_URL + TOKEN, methods=['POST'])

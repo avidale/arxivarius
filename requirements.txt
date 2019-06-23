@@ -10,3 +10,4 @@ keras==2.2.4
 scikit-learn==0.19.1
 tqdm
 mongomock
+tgalice==0.0.6
