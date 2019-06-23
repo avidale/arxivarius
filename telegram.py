@@ -7,6 +7,8 @@ import pymongo
 import mongomock
 import telebot
 
+from datetime import datetime
+
 from flask import Flask, request
 
 from business_logic import ArticleFinder
@@ -38,6 +40,7 @@ else:
     mongo_client = mongomock.MongoClient()
     mongo_db = mongo_client.db
 mongo_states = mongo_db.get_collection('states')
+mongo_message_logs = mongo_db.get_collection('message_logs')
 
 
 def render_markup(suggests=None, max_columns=3, initial_ratio=2):
@@ -46,6 +49,31 @@ def render_markup(suggests=None, max_columns=3, initial_ratio=2):
     markup = telebot.types.ReplyKeyboardMarkup(row_width=max(1, min(max_columns, int(len(suggests) / initial_ratio))))
     markup.add(*suggests)
     return markup
+
+
+class LoggedMessage:
+    def __init__(self, text, user_id, from_user, collection, **kwargs):
+        self.text = text
+        self.user_id = user_id
+        self.from_user = from_user
+        self.timestamp = str(datetime.utcnow())
+        self.kwargs = kwargs
+        self.mongo_collection = collection
+
+    def save(self):
+        self.mongo_collection.insert_one(self.to_dict())
+
+    def to_dict(self):
+        result = {
+            'text': self.text,
+            'user_id': self.user_id,
+            'from_user': self.from_user,
+            'timestamp': self.timestamp
+        }
+        for k, v in self.kwargs.items():
+            if k not in result:
+                result[k] = v
+        return result
 
 
 @server.route("/" + TELEBOT_URL)
@@ -64,6 +92,13 @@ def wake_up():
 @bot.message_handler(func=lambda message: True, content_types=['document', 'text', 'photo'])
 def process_message(msg):
     bot.send_chat_action(msg.chat.id, 'typing')
+    LoggedMessage(
+        text=msg.text,
+        user_id=msg.from_user.id,
+        from_user=True,
+        message_id=msg.message_id,
+        collection=mongo_message_logs,
+    ).save()
     chat_id = msg.chat.id
     username = msg.from_user.username
     state_obj = mongo_states.find_one({'key': chat_id})
@@ -78,12 +113,19 @@ def process_message(msg):
     for i in range(3):
         buttons.append(' '.join([p[0] for p in sample_tags(nlu_module.find_grammar)]))
 
-    bot.reply_to(msg, text=response.text, reply_markup=render_markup(buttons))
+    final_reply = bot.reply_to(msg, text=response.text, reply_markup=render_markup(buttons))
     mongo_states.update_one(
         {'key': chat_id},
         {'$set': {'key': chat_id, 'state': state, 'username': username}},
         upsert=True
     )
+    LoggedMessage(
+        text=response.text,
+        user_id=msg.from_user.id,
+        from_user=False,
+        message_id=final_reply.message_id,
+        collection=mongo_message_logs,
+    ).save()
 
 
 @server.route('/' + TELEBOT_URL + TOKEN, methods=['POST'])
