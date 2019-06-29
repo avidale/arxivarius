@@ -20,8 +20,12 @@ with open('models/citations.json', 'r') as f:
     citations = json.load(f)
 with open('models/area_to_code.json', 'r') as f:
     ontology = json.load(f)
+with open('models/topic2papers.json', 'r') as f:
+    topic2papers = json.load(f)
 
-finder = ArticleFinder(conversation_model=SimpleConversation(), citations=citations, ontology=ontology)
+finder = ArticleFinder(
+    conversation_model=SimpleConversation(), citations=citations, ontology=ontology, topic2papers=topic2papers
+)
 nlu_module = NLU()
 
 TOKEN = os.environ['TOKEN']

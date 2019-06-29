@@ -39,9 +39,14 @@ def popularity_first(article):
 
 
 class ArticleFinder:
-    def __init__(self, conversation_model, citations=None, ontology=None, page_size=5, max_button_len=20):
+    def __init__(
+            self, conversation_model,
+            citations=None, ontology=None, topic2papers=None,
+            page_size=5, max_button_len=20
+    ):
         self.ontology = {normalize_text(k): v for k, v in (ontology or {}).items()}
         self.citations = citations or {}
+        self.topic2papers = topic2papers or {}
         self.page_size = page_size
         self.max_button_len = max_button_len
         self.conversation_model = conversation_model
@@ -130,6 +135,18 @@ class ArticleFinder:
         elif is_top:
             # we need to re-rank the top after search
             params['max_results'] = 1000
+
+        if frame == {'intent': 'find', 'TOP': 'top'}:
+            # just retrieve the top from cache and use their ids
+            most_cited = sorted(self.citations.items(), key=lambda p: len(p[1]), reverse=True)
+            del params['search_query']
+            params['id_list'] = ','.join([p[0] for p in most_cited[:100]])
+        elif set(frame.keys()) == {'intent', 'TOP', 'TOPIC'}:
+            norm_topic = normalize_text(topic_text)
+            most_cited = self.topic2papers.get(norm_topic, [])
+            if len(most_cited) >= 50:
+                del params['search_query']
+                params['id_list'] = ','.join(most_cited[:100])
 
         print(params)
         articles = get_articles(params)
