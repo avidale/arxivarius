@@ -1,6 +1,7 @@
 import feedparser
 import re
 import requests
+import tgalice
 
 from nlu import normalize_text, tokenize_text
 
@@ -74,7 +75,7 @@ class ArticleFinder:
         else:
             resp = self.do_conversation(state, semantic_frame)
         state['last_frame'] = semantic_frame
-        return resp
+        return tgalice.dialog.Response(text=resp.text, suggests=resp.buttons, user_object=state)
 
     def do_conversation(self, state, semantic_frame):
         return Response(self.conversation_model.reply(state['text']))
