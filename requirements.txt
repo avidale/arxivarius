@@ -5,7 +5,7 @@ pymongo
 pytelegrambotapi
 spacy==2.1.4
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.1.0/en_core_web_sm-2.1.0.tar.gz#egg=en_core_web_sm
-tensorflow==1.15.4
+tensorflow==2.11.1
 keras==2.2.4
 scikit-learn==0.19.1
 tqdm
